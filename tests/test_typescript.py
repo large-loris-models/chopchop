@@ -76,16 +76,20 @@ def test_expression_grammar():
     assert ts_expression_grammar_checker.realizable("")
     assert ts_expression_grammar_checker.realizable("5 + 16")
     assert ts_expression_grammar_checker.realizable("albatross")
-    # assert ts_expression_grammar_checker.realizable("\"\"")
-    # assert ts_expression_grammar_checker.realizable("((a:number, b:string) => a + \"")
-    # assert ts_expression_grammar_checker.realizable("foo.bar.baz + bar(foo, 18)")
     assert not ts_expression_grammar_checker.realizable("5 + 10;")
     assert not ts_expression_grammar_checker.realizable("/16")
-    # assert not ts_expression_grammar_checker.realizable("if (h == 10) then {l")
     assert not ts_expression_grammar_checker.realizable("foo(,)")
     assert not ts_expression_grammar_checker.realizable(")")
     assert ts_expression_grammar_checker.realizable("""//hello joe
     5""")
+
+
+# TODO: When the regex library patches the fullmatch bug, enable this test.
+# @reset
+# def test_regex_bug():
+#     """This test fails due to a regex library bug with in fullmatch when
+#     partial = True."""
+#     assert ts_expression_grammar_checker.realizable("typescript")
 
 
 @reset
@@ -610,11 +614,11 @@ def test_codeblock():
                                 function
                                 """)
     assert typescript_typechecker.realizable("""
-                                         ```
+                                         ```typescript
                                          function
                                          """)
     assert typescript_typechecker.realizable("""
-                                         ```
+                                         ```typescript
                                          function foo (x: number) : number {
                                             for (let i: number = 0; i < 10; i = i) {
                                                 if (x > 10){
@@ -628,22 +632,22 @@ def test_codeblock():
 
 
 # # Enable test if you will allow "```typescript" to begin a codeblock.
-# @reset
-# def test_typescript_codeblock_prefix():
-#     assert typescript_typechecker.realizable("""
-#                                          ```typescript
-#                                          function
-#                                          """)
-#     assert not typescript_typechecker.realizable("""
-#                                          ```tpescript
-#                                          function
-#                                          """)
+@reset
+def test_typescript_codeblock_prefix():
+    assert typescript_typechecker.realizable("""
+                                         ```typescript
+                                         function
+                                         """)
+    assert not typescript_typechecker.realizable("""
+                                         ```tpescript
+                                         function
+                                         """)
 
 
 @reset
 def test_min_max():
     assert typescript_typechecker.realizable("""
-        ```
+        ```typescript
         function min(a: number, b: number): number {
             return Math.min(5, 3);
         }```""")
@@ -667,7 +671,7 @@ def test_old_errors():
                               true ? bar(1, foo(0))
                               """)
     assert not typescript_typechecker.realizable("""
-        ```
+        ```typescript
         let memoizationTable: number = (1024 * 576); // Initialize table size as maximum sequence length times max value divided by step size + 1
         memoizationTable = Math.floor((Math.pow(3,(memoizationTable - 1)) % ((Math.pow(89,m)
     """)
@@ -675,7 +679,7 @@ def test_old_errors():
                                   5 ? (0 % 3 == 0 ? (((((((((((((((5 + 3) + 9) + 1) + 0) + 5) + 9) + 1) + 0) + 5) + 9) + 1) + 0) + 5) + 9) + 1)"""
                                                     )
     assert not typescript_typechecker.realizable("""
-                                  ```
+                                  ```typescript
                                   function is_nonagonal(n: number): boolean {
                                       const numDigits: number = (n * Math.log2(10)) / Math.log2(3);
                                       if (numDigits === Math.floor(numDigits)) {
@@ -688,7 +692,7 @@ def test_old_errors():
 # Slow test that uses niche behavior for prod types.
 @reset
 def test_niche_failure_mode():
-    unconstrained_output = """  ```
+    unconstrained_output = """  ```typescript
 function getMaxSum(n: number): number {
     if (n <= 0) {
         return 0;
@@ -700,5 +704,4 @@ function getMaxSum(n: number): number {
         const quarterN = Math.floor(n / 4);
         const fifthN = Math.floor(n / 5 """
     for i in range(len(unconstrained_output)):
-        print(i)
         assert typescript_typechecker.realizable(unconstrained_output[:i])

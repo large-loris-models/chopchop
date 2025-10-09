@@ -607,3 +607,9 @@ typescript_typechecker = RealizabilityChecker(
     common_parsers["codeblock"],
     common_lexer_specs["codeblock"],
 )
+
+typescript_grammar_checker = RealizabilityChecker(
+    lambda asts: asts,
+    common_parsers["codeblock"],
+    common_lexer_specs["codeblock"],
+)

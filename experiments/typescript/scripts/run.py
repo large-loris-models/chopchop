@@ -4,6 +4,7 @@ import os
 import pandas as pd
 from pathlib import Path
 import time
+from transformers import AutoTokenizer
 from typing import Literal
 
 from llm.realizability import RealizabilityChecker
@@ -17,15 +18,29 @@ CONTEXT_FILE_PATH = "experiments/typescript/benchmarks/context.txt"
 BENCHMARKS_FILE_PATH = "experiments/typescript/benchmarks/mbpp_benchmarks"
 
 
+
 def ts_clean(initial_output: str) -> str:
     output = initial_output
-    start_prog_index = initial_output.find('```')
+    start_prog_index = initial_output.find('```typescript')
     if start_prog_index != -1:
-        output = initial_output[start_prog_index + 3:]
+        output = initial_output[start_prog_index + len('```typescript'):]
         end_prog_index = output.find('```')
         if end_prog_index != -1:
             output = output[:end_prog_index]
     return output
+
+
+def format_prompt_to_typescript_question(prompt: str) -> tuple[str, str]:
+    """From https://github.com/eth-sri/type-constrained-code-generation"""
+    user_input = []
+    split = prompt.splitlines()
+    for i, line in enumerate(split):
+        if line.startswith("//"):
+            user_input.append(line[len("//") :].strip())
+        else:
+            break
+    first_code_line = "```typescript\n" + "\n".join(split[i:])
+    return "\n".join(user_input), first_code_line
 
 
 @reset
@@ -41,10 +56,11 @@ def run_experiment(
     checker: RealizabilityChecker,
     outfile,
     outlist: list
-):
+) -> None:
     prompt = prompt.rstrip('\n')
+    prompt, fixed_prefix = format_prompt_to_typescript_question(prompt)
     start = time.time()
-    run_info = runner.run(config, prompt, context=context,
+    run_info = runner.run(config, prompt, context=context, fixed_prefix=fixed_prefix,
                           realizability_checker=checker)
     elapsed = time.time() - start
     # Check if program compiles with tsc

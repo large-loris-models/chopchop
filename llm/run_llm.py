@@ -26,7 +26,7 @@ class Config:
     top_p: float = 1.0
     top_k: float = 0
     num_guesses: int = 400
-    timeout: int = 99999 # no timeout by default
+    timeout: int = 99999  # no timeout by default
 
 
 @dataclass
@@ -55,20 +55,23 @@ class LanguageModelRunner:
 
         model = AutoModelForCausalLM.from_pretrained(
             self.model_config.model_id, device_map="auto",
-            torch_dtype=self.model_config.dtype
+            torch_dtype=self.model_config.dtype,
         )
         model.resize_token_embeddings(len(tokenizer))
         return model, tokenizer
 
-    def _tokenize_prompt(self, prompt: str, context: str) -> torch.Tensor:
+    def _tokenize_prompt(
+        self, prompt: str, context: str, fixed_prefix: str = ""
+    ) -> torch.Tensor:
         """
-        Process and tokenize the input prompt.
+        Process and tokenize the input prompt with an optional fixed prefix.
+        Returns a tensor of token IDs on the model's device.
         """
         messages = [
             {"role": "system", "content": context},
             {"role": "user", "content": prompt},
         ]
-        input_ids: torch.Tensor = self.tokenizer.apply_chat_template(
+        input_ids = self.tokenizer.apply_chat_template(
             messages,
             tokenize=True,
             add_generation_prompt=True,
@@ -76,6 +79,14 @@ class LanguageModelRunner:
             return_tensors="pt",
             padding=True,
         )
+        if fixed_prefix:
+            prefix_tokens = self.tokenizer(
+                fixed_prefix,
+                add_special_tokens=False,
+                return_tensors="pt",
+            )["input_ids"]
+            input_ids = torch.cat([input_ids, prefix_tokens], dim=-1)
+
         return input_ids.to(self.model.device)
 
     def _generate_next_token(
@@ -118,13 +129,16 @@ class LanguageModelRunner:
         config: Config,
         prompt: str,
         context: str,
-        realizability_checker=None
+        fixed_prefix: str = "",
+        realizability_checker=None,
     ) -> RunInfo:
-        input_ids = self._tokenize_prompt(prompt, context)
-        generated_tokens: list[int] = []
+        input_ids = self._tokenize_prompt(prompt, context, fixed_prefix)
+        generated_tokens: list[int] = self.tokenizer(
+            fixed_prefix, add_special_tokens=False
+        )["input_ids"]
         forbidden_tokens: dict = defaultdict(set)
         cache = DynamicCache()
-        decoded_output = ""
+        decoded_output = fixed_prefix
         num_tokens_guessed = 0
         total_realizability_time = 0.0
         tries = 0

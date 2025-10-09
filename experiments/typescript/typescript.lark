@@ -95,6 +95,4 @@ command: assignment ";"
 command_seq: command
     | command command_seq {CommandSeq}
 
-codeblock: "```" command_seq "```"
-    # TOGGLE ON OR OFF IF YOU WANT TYPESCRIPT
-    # | "```" "typescript" command_seq "```"
+codeblock: "```" "typescript" command_seq "```"
