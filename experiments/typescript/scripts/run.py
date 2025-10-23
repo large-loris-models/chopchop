@@ -1,10 +1,13 @@
 import argparse
 from dataclasses import asdict
 import os
+import numpy as np
+import random
 import pandas as pd
 from pathlib import Path
+import sys
 import time
-from transformers import AutoTokenizer
+import torch
 from typing import Literal
 
 from llm.realizability import RealizabilityChecker
@@ -16,7 +19,7 @@ from experiments.typescript.typescript_abstract_syntax import typescript_grammar
 
 CONTEXT_FILE_PATH = "experiments/typescript/benchmarks/context.txt"
 BENCHMARKS_FILE_PATH = "experiments/typescript/benchmarks/mbpp_benchmarks"
-
+sys.setrecursionlimit(9000)
 
 
 def ts_clean(initial_output: str) -> str:
@@ -36,7 +39,7 @@ def format_prompt_to_typescript_question(prompt: str) -> tuple[str, str]:
     split = prompt.splitlines()
     for i, line in enumerate(split):
         if line.startswith("//"):
-            user_input.append(line[len("//") :].strip())
+            user_input.append(line[len("//"):].strip())
         else:
             break
     first_code_line = "```typescript\n" + "\n".join(split[i:])
@@ -96,6 +99,11 @@ def run_experiment(
 def run_typescript(runner: LanguageModelRunner, config: Config, runs: int,
                    mode: Literal['Unconstrained', 'GCD', 'TypedCD'],
                    model_name: str, output_directory: Path):
+    # Fix seed to make experiments reproducible.
+    torch.manual_seed(897984975)
+    random.seed(897984975)
+    np.random.seed(897984975)
+
     # Set instrumentation
     match mode:
         case 'Unconstrained':
@@ -152,7 +160,7 @@ def main():
     valid_checkers = ["semantic", "unconstrained", "grammar"]
     checker_mapping = {
         "semantic": "TypedCD",
-        "unconstrained": "Unconstrained", 
+        "unconstrained": "Unconstrained",
         "grammar": "GCD"
     }
 

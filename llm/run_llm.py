@@ -20,12 +20,10 @@ class Config:
     """
     Configuration for language model generation.
     """
-    max_new_tokens: int = 400
     temperature: float = 0.5
     repetition_penalty: float = 1.0
     top_p: float = 1.0
     top_k: float = 0
-    num_guesses: int = 400
     timeout: int = 99999  # no timeout by default
 
 
@@ -145,11 +143,7 @@ class LanguageModelRunner:
         try_counts: Counter[int] = Counter()
         start_time = time.time()
 
-        while (
-            num_tokens_guessed < config.num_guesses
-            and len(generated_tokens) < config.max_new_tokens
-            and time.time() - start_time <= config.timeout
-        ):
+        while (time.time() - start_time <= config.timeout):
             num_tokens_guessed += 1
             tries += 1
             output = self._generate_next_token(
