@@ -1,4 +1,5 @@
 networkx
+pytest
 transformers
 greenery
 torch
@@ -11,4 +12,6 @@ streamlit-ace
 st-annotated-text
 streamlit-keyup
 lark
+tabulate
+func_timeout
 -e .

@@ -21,12 +21,11 @@ class Config:
     Configuration for language model generation.
     """
 
-    max_new_tokens: int = 300
     temperature: float = 0.5
     repetition_penalty: float = 1.0
     top_p: float = 1.0
     top_k: float = 0
-    num_guesses: int = 300
+    timeout: int = 99999  # no timeout by default
 
 
 @dataclass
@@ -37,6 +36,7 @@ class RunInfo:
     num_tokens_guessed: int
     num_tokens_generated: int
     tries_per_token: Counter
+    timed_out: bool = False
 
 
 class LanguageModelRunner:
@@ -53,20 +53,25 @@ class LanguageModelRunner:
         tokenizer.pad_token = tokenizer.eos_token
 
         model = AutoModelForCausalLM.from_pretrained(
-            self.model_config.model_id, device_map="auto", torch_dtype=self.model_config.dtype
+            self.model_config.model_id,
+            device_map="auto",
+            torch_dtype=self.model_config.dtype,
         )
         model.resize_token_embeddings(len(tokenizer))
         return model, tokenizer
 
-    def _tokenize_prompt(self, prompt: str, context: str) -> torch.Tensor:
+    def _tokenize_prompt(
+        self, prompt: str, context: str, fixed_prefix: str = ""
+    ) -> torch.Tensor:
         """
-        Process and tokenize the input prompt.
+        Process and tokenize the input prompt with an optional fixed prefix.
+        Returns a tensor of token IDs on the model's device.
         """
         messages = [
             {"role": "system", "content": context},
             {"role": "user", "content": prompt},
         ]
-        input_ids: torch.Tensor = self.tokenizer.apply_chat_template(
+        input_ids = self.tokenizer.apply_chat_template(
             messages,
             tokenize=True,
             add_generation_prompt=True,
@@ -74,6 +79,14 @@ class LanguageModelRunner:
             return_tensors="pt",
             padding=True,
         )
+        if fixed_prefix:
+            prefix_tokens = self.tokenizer(
+                fixed_prefix,
+                add_special_tokens=False,
+                return_tensors="pt",
+            )["input_ids"]
+            input_ids = torch.cat([input_ids, prefix_tokens], dim=-1)
+
         return input_ids.to(self.model.device)
 
     def _generate_next_token(
@@ -116,21 +129,23 @@ class LanguageModelRunner:
         config: Config,
         prompt: str,
         context: str,
+        fixed_prefix: str = "",
         realizability_checker=None,
     ) -> RunInfo:
-        input_ids = self._tokenize_prompt(prompt, context)
-        generated_tokens: list[int] = []
+        input_ids = self._tokenize_prompt(prompt, context, fixed_prefix)
+        generated_tokens: list[int] = self.tokenizer(
+            fixed_prefix, add_special_tokens=False
+        )["input_ids"]
         forbidden_tokens: dict = defaultdict(set)
-        num_tokens_guessed = 0
         cache = DynamicCache()
-        decoded_output = ""
+        decoded_output = fixed_prefix
+        num_tokens_guessed = 0
         total_realizability_time = 0.0
         tries = 0
         try_counts: Counter[int] = Counter()
+        start_time = time.time()
 
-        for _ in range(config.num_guesses):
-            if len(generated_tokens) >= config.max_new_tokens:
-                break
+        while time.time() - start_time <= config.timeout:
             num_tokens_guessed += 1
             tries += 1
             output = self._generate_next_token(
@@ -145,6 +160,7 @@ class LanguageModelRunner:
             decoded_output = self.tokenizer.decode(
                 generated_tokens + [new_token], skip_special_tokens=True
             )
+
             if realizability_checker is None:
                 is_realizable = True
             else:
@@ -153,6 +169,7 @@ class LanguageModelRunner:
                     decoded_output, is_final
                 )
                 total_realizability_time += time.time() - check_start
+
             if is_realizable:
                 try_counts[tries] += 1
                 tries = 0
@@ -165,11 +182,11 @@ class LanguageModelRunner:
                         num_tokens_guessed=num_tokens_guessed,
                         num_tokens_generated=len(generated_tokens),
                         tries_per_token=try_counts,
+                        timed_out=False,
                     )
             else:
                 forbidden_tokens[tuple(generated_tokens)].add(new_token)
                 cache.crop(-1)
-
         return RunInfo(
             llm_finished=False,
             output=decoded_output,
@@ -177,6 +194,7 @@ class LanguageModelRunner:
             num_tokens_guessed=num_tokens_guessed,
             num_tokens_generated=len(generated_tokens),
             tries_per_token=try_counts,
+            timed_out=time.time() - start_time > config.timeout,
         )
 
     def __del__(self):
