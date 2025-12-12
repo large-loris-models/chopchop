@@ -2,8 +2,6 @@ import importlib.resources
 import lark
 import regex
 from typing import Callable, Iterable
-from operator import or_
-from functools import reduce
 from regex import Pattern as Regex
 from dataclasses import dataclass
 from lark import Lark
