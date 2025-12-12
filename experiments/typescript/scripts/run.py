@@ -19,7 +19,6 @@ from experiments.typescript.typescript_abstract_syntax import typescript_grammar
 
 CONTEXT_FILE_PATH = "experiments/typescript/benchmarks/context.txt"
 BENCHMARKS_FILE_PATH = "experiments/typescript/benchmarks/mbpp_benchmarks"
-sys.setrecursionlimit(9000)
 
 
 def ts_clean(initial_output: str) -> str:

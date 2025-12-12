@@ -1,7 +1,7 @@
 from functools import reduce
 from core.grammar import is_nonempty, TreeGrammar
 from core.parser import D, Choice, Parser, delta, image
-from core.lexing.lexing import LexerSpec, lex
+from core.lexing.lexing import LexerSpec
 from typing import Callable
 
 
@@ -21,7 +21,7 @@ class RealizabilityChecker:
         Checks if a prefix is realizable.
         If final is True, the prefix must be a complete program.
         """
-        lexes = lex(prefix, self.lexerspec, final)
+        lexes = self.lexerspec.lex(prefix, final)
         prefix_space = Choice.of(
             reduce(lambda parser, token: D(token, parser), lex, self.parser)
             for lex in lexes

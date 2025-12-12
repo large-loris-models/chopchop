@@ -1,9 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-import functools
 import regex
 from typing import Iterable
 from .token import Token
+from .lru_cache import LRUCache
 
 
 IGNORE = "RESERVED_IGNORE_SORT_TITLE"
@@ -13,6 +13,9 @@ IGNORE = "RESERVED_IGNORE_SORT_TITLE"
 class LexerSpec:
     tokens: frozenset[Token]
     ignore_regex: regex.Pattern = regex.compile(r"^(?!)$")
+    lexical_cache: LRUCache[str, LexerState] = field(
+        default_factory=lambda: LRUCache(128)
+    )
 
     def __hash__(self):
         return hash((self.tokens, self.ignore_regex.pattern))
@@ -20,6 +23,34 @@ class LexerSpec:
     def get_lexemes(self) -> Iterable[Token]:
         yield from self.tokens
         yield Token(IGNORE, self.ignore_regex)
+
+    def lex(self, inp: str, final=True):
+        lstate = self.compute_lexer_state(inp)
+        if final:
+            lstate = lstate.finalize()
+        lstate = lstate.remove_ignorable_tokens()
+        return lstate.get_partial_lexes()
+
+    def partial_lex(self, inp: str):
+        return self.lex(inp, final=False)
+
+    def compute_lexer_state(self, inp: str) -> LexerState:
+        # Reuse the lex of the longest prefix in the cache.
+        lstate = LexerState()
+        start_idx = 0
+        for i in range(len(inp), 0, -1):
+            cached = self.lexical_cache.get(inp[:i])
+            if cached is not None:
+                lstate = cached
+                start_idx = i
+                break
+
+        # Lex the new part of the input and cache intermediate results.
+        for char in inp[start_idx:]:
+            lstate = lstate.extend_lexer_state(char, self)
+            lstate.remove_nonmaximal_munch()
+            self.lexical_cache.put(inp, lstate)
+        return lstate
 
 
 @dataclass
@@ -97,25 +128,3 @@ class LexerState:
             for state in self.continuations
         }
         return LexerState(self.prefix, continuations)
-
-
-def partial_lex(inp: str, lexerspec: LexerSpec):
-    return lex(inp, lexerspec, final=False)
-
-
-def lex(inp: str, lexerspec: LexerSpec, final=True):
-    lstate = compute_lexer_state(inp, lexerspec)
-    if final:
-        lstate = lstate.finalize()
-    lstate = lstate.remove_ignorable_tokens()
-    return lstate.get_partial_lexes()
-
-
-@functools.lru_cache
-def compute_lexer_state(inp: str, lexerspec: LexerSpec) -> LexerState:
-    if len(inp) == 0:
-        return LexerState()
-    lstate = compute_lexer_state(inp[:-1], lexerspec)
-    lstate = lstate.extend_lexer_state(inp[-1], lexerspec)
-    lstate.remove_nonmaximal_munch()
-    return lstate

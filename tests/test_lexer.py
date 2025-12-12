@@ -1,4 +1,4 @@
-from core.lexing.lexing import LexerSpec, partial_lex, lex
+from core.lexing.lexing import LexerSpec
 from core.lexing.token import Token
 import regex as re
 
@@ -9,13 +9,13 @@ def test_partial_lex_abc():
         Token("b", re.compile("b")),
         Token("c", re.compile("c"))
     }), re.compile(""))
-    assert partial_lex("abc", lspec) == {
+    assert lspec.partial_lex("abc") == {
         (Token("a", re.compile("a"), "a", True),
          Token("b", re.compile("b"), "b", True),
          Token("c", re.compile("c"), "c", False))}
 
-    assert partial_lex("", lspec) == {()}
-    assert partial_lex("d", lspec) == set()
+    assert lspec.partial_lex("") == {()}
+    assert lspec.partial_lex("d") == set()
 
 
 def test_partial_lex_ignore():
@@ -24,12 +24,12 @@ def test_partial_lex_ignore():
         Token("b", re.compile("b")),
         Token("c", re.compile("c"))
     }), re.compile("\\s+"))
-    assert partial_lex("a b   c", lspec) == {
+    assert lspec.partial_lex("a b   c") == {
         (Token("a", re.compile("a"), "a", True),
          Token("b", re.compile("b"), "b", True),
          Token("c", re.compile("c"), "c", False))}
 
-    assert partial_lex("    ", lspec) == {()}
+    assert lspec.partial_lex("    ") == {()}
 
 
 def test_partial_lex_disjoint():
@@ -37,16 +37,16 @@ def test_partial_lex_disjoint():
         Token("a", re.compile("a+")),
         Token("b", re.compile("b+")),
     }), re.compile(""))
-    assert partial_lex("aaaa", lspec) == {
+    assert lspec.partial_lex("aaaa") == {
         (Token("a", re.compile("a+"), "aaaa", False),)}
 
-    assert partial_lex("aaabaabb", lspec) == {
+    assert lspec.partial_lex("aaabaabb") == {
         (Token("a", re.compile("a+"), "aaa", True),
          Token("b", re.compile("b+"), "b", True),
          Token("a", re.compile("a+"), "aa", True),
          Token("b", re.compile("b+"), "bb", False))}
 
-    assert partial_lex("", lspec) == {()}
+    assert lspec.partial_lex("") == {()}
 
 
 def test_partial_lex_nonsingleton():
@@ -58,7 +58,7 @@ def test_partial_lex_nonsingleton():
         Token("dot", re.compile("\\.")),
         Token("caps", re.compile("tocaps"))
     }), re.compile("\\s+"))
-    assert partial_lex("print$( foo.tocap", lspec) == {
+    assert lspec.partial_lex("print$( foo.tocap") == {
         (Token("print", re.compile(r'print\$'), "print$", True),
          Token("lpar", re.compile("\\("), "(", True),
          Token("var", re.compile("[a-z]+"), "foo", True),
@@ -71,7 +71,7 @@ def test_partial_lex_nonsingleton():
          Token("var", re.compile("[a-z]+"), "tocap", False))
     }
 
-    assert partial_lex("  ))( zip prin", lspec) == {
+    assert lspec.partial_lex("  ))( zip prin") == {
         (Token("rpar", re.compile("\\)"), ")", True),
          Token("rpar", re.compile("\\)"), ")", True),
          Token("lpar", re.compile("\\("), "(", True),
@@ -84,7 +84,7 @@ def test_partial_lex_nonsingleton():
          Token("var", re.compile("[a-z]+"), "prin", False))
     }
 
-    assert partial_lex("  ))( zip prin ", lspec) == {
+    assert lspec.partial_lex("  ))( zip prin ") == {
         (Token("rpar", re.compile("\\)"), ")", True),
          Token("rpar", re.compile("\\)"), ")", True),
          Token("lpar", re.compile("\\("), "(", True),
@@ -98,14 +98,14 @@ def test_partial_lex_finalize():
         Token("print", re.compile("print$")),
         Token("var", re.compile("[a-z]+"))
     }), re.compile("\\s+"))
-    assert partial_lex("a p", lspec) == {
+    assert lspec.partial_lex("a p") == {
         (Token("var", re.compile("[a-z]+"), "a", True),
          Token("var", re.compile("[a-z]+"), "p", False)),
         (Token("var", re.compile("[a-z]+"), "a", True),
          Token("print", re.compile("print$"), "p", False))
     }
 
-    assert lex("a p", lspec) == {
+    assert lspec.lex("a p") == {
         (Token("var", re.compile("[a-z]+"), "a", True),
          Token("var", re.compile("[a-z]+"), "p", True))
     }

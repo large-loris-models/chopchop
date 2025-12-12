@@ -1,6 +1,5 @@
 from functools import reduce
 from core.grammar import is_nonempty
-from core.lexing.lexing import lex, partial_lex
 from core.parser import D, Choice, delta, image
 from llm.realizability import RealizabilityChecker
 from tests.utils import reset
@@ -33,9 +32,9 @@ def type_expression_test(pref: str, envs: Environment = Environment(),
     Returns the type of the expression.
     """
     if not final:
-        lexes = partial_lex(pref, common_lexer_specs["exp"])
+        lexes = common_lexer_specs["exp"].partial_lex(pref)
     else:
-        lexes = lex(pref, common_lexer_specs["exp"])
+        lexes = common_lexer_specs["exp"].lex(pref)
 
     # Build term representing set of possible parse trees
     terms = [reduce(lambda parser, leaf: D(leaf, parser), lex, common_parsers["exp"])
@@ -55,9 +54,9 @@ def type_commands_test(pref: str, envs: Environment = Environment(),
     Returns the type of the expression.
     """
     if not final:
-        lexes = partial_lex(pref, common_lexer_specs["command_seq"])
+        lexes = common_lexer_specs["command_seq"].partial_lex(pref)
     else:
-        lexes = lex(pref, common_lexer_specs["command_seq"])
+        lexes = common_lexer_specs["command_seq"].lex(pref)
 
     # Build term representing set of possible parse trees
     terms = [reduce(lambda parser, leaf: D(leaf, parser),
