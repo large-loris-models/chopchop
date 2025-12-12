@@ -2,7 +2,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from .rewrite import fixpoint, rewrite, Term
 from .utils import flatten
-from .grammar import Union, Application, EmptySet, TreeGrammar
+from .grammar import TreeGrammar, Union, Application, EmptySet, ASTLeaf
 from .lexing.token import Token
 
 
@@ -145,7 +145,7 @@ def delta(p: Parser) -> Parser:
 def image(p: Parser) -> TreeGrammar:
     match p:
         case ConstantParser(t):
-            return t
+            return ASTLeaf(**vars(t))
         case EmptyParser():
             return EmptySet()
         case Choice(children):

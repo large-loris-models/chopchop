@@ -31,6 +31,8 @@ class LexerState:
         return {tuple(self.prefix) + cont for cont in self.continuations}
 
     def simplify(self) -> LexerState:
+        """If no token regex can munch further,
+        then fix the next token in the prefix and reset the continuations."""
         if self.continuations and all(
             cont[len(self.prefix)].nullable() for cont in self.continuations
         ):
@@ -40,6 +42,7 @@ class LexerState:
         return self
 
     def finalize(self) -> LexerState:
+        """Complete every completable partial lex and discard the others."""
         if self.continuations:
             continuations = {
                 c[:-1] + (c[-1].complete(),)
@@ -50,6 +53,7 @@ class LexerState:
         return self
 
     def extend_lexer_state(self, char: str, lexerspec: LexerSpec) -> LexerState:
+        """Extend the lexer state by lexing one more character."""
         new_continuations: set[tuple[Token, ...]] = set()
         for state in self.continuations:
             if len(state) == 0:
@@ -70,6 +74,7 @@ class LexerState:
         return LexerState(self.prefix, new_continuations)
 
     def remove_nonmaximal_munch(self):
+        """Remove continuations that violate maximal munch."""
         result = set(self.continuations)
         for state in self.continuations:
             for state2 in result:
@@ -86,6 +91,7 @@ class LexerState:
         self.continuations = result
 
     def remove_ignorable_tokens(self) -> LexerState:
+        """Remove ignorable tokens (e.g., whitespace)."""
         continuations = {
             tuple(filter(lambda x: x.token_type != IGNORE, state))
             for state in self.continuations

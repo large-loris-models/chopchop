@@ -74,8 +74,7 @@ We expose these graphs to users as `TreeGrammar` objects, which they should thin
 To manipulate these objects, users write pruners, which are functions that map `TreeGrammar`s to `TreeGrammar`s by removing undesirable programs.
 For example, 
 ```python
-from core.grammar import TreeGrammar, Union, EmptySet
-from core.lexing.token import Token
+from core.grammar import TreeGrammar, Union, EmptySet, Token
 
 @rewrite
 def sum_of_evens(t: TreeGrammar) -> TreeGrammar:

@@ -2,8 +2,7 @@ from __future__ import annotations
 from functools import lru_cache
 
 from core.rewrite import rewrite
-from core.grammar import TreeGrammar, EmptySet, Union, as_tree
-from core.lexing.token import Token
+from core.grammar import TreeGrammar, EmptySet, Union, ASTLeaf, as_tree
 from llm.realizability import RealizabilityChecker
 from .types import *
 from .environment import *
@@ -73,7 +72,7 @@ def typeprune_lhs(
             # TODO: Concretizing the token is a hack, since it may be incomplete.
             # `tok` should be passed directly when the backend supports it.
             tok_tree = as_tree(tok)
-            if isinstance(tok_tree, Token):
+            if isinstance(tok_tree, ASTLeaf):
                 return env.get_terms_of_type(
                     tok_tree, target_type, is_mutable=is_mutable
                 )
@@ -98,7 +97,7 @@ def typeprune_expression(
             # TODO: Concretizing the token is a hack, since it may be incomplete.
             # `tok` should be passed directly when the backend supports it.
             tok_tree = as_tree(tok)
-            if isinstance(tok_tree, Token):
+            if isinstance(tok_tree, ASTLeaf):
                 return env.get_terms_of_type(tok_tree, target_type)
             raise ValueError(f"Var has non-token contents: {tok_tree}")
         case ZaryFuncApp(func):
@@ -428,7 +427,7 @@ def infer_type_expression(env: Environment, exp: TreeGrammar) -> Type:
             return NUMBERTYPE
         case BooleanConst():
             return BOOLEANTYPE
-        case Var(var) if isinstance(var, Token):
+        case Var(var) if isinstance(var, ASTLeaf):
             return env._get_typed(var.prefix, TopType())[1]
         case ZaryFuncApp(func,):
             functype = infer_type_expression(env, func)
@@ -551,7 +550,7 @@ def get_new_bindings(env: Environment, stmt: TreeGrammar
 def get_identifier_name(exp: TreeGrammar | None) -> str:
     """WARNING: DO NOT CALL ON INCOMPLETE TREEGRAMMAR."""
     match exp:
-        case Var(var) if isinstance(var, Token):
+        case Var(var) if isinstance(var, ASTLeaf):
             return var.prefix
     raise ValueError(f"Cannot get identifier name of non-variable {exp}")
 

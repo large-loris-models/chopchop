@@ -1,15 +1,14 @@
 from .utils import *
 from core.rewrite import *
 from core.grammar import *
-from core.lexing.token import Token
 import regex
 
 
 class Add(Binary): ...
 
 
-ZERO = Token("ZERO", regex.compile(r"0"), prefix="0", is_complete=True)
-ONE = Token("ONE", regex.compile(r"1"), prefix="1", is_complete=True)
+ZERO = ASTLeaf("ZERO", regex.compile(r"0"), prefix="0", is_complete=True)
+ONE = ASTLeaf("ONE", regex.compile(r"1"), prefix="1", is_complete=True)
 
 
 @rewrite

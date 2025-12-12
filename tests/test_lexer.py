@@ -1,4 +1,4 @@
-from core.lexing.lexing import *
+from core.lexing.lexing import LexerSpec, partial_lex, lex
 from core.lexing.token import Token
 import regex as re
 

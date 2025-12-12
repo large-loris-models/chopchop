@@ -1,8 +1,7 @@
 from core.rewrite import rewrite
-from core.grammar import TreeGrammar, EmptySet, Application, Union, as_tree
+from core.grammar import TreeGrammar, EmptySet, Application, Union, ASTLeaf, as_tree
 from core.lark.from_lark import parse_attribute_grammar
 from typing import Optional
-from core.lexing.token import Token
 from .egraph import EGraph, in_egraph
 from functools import lru_cache
 from importlib.resources import files
@@ -20,9 +19,9 @@ _, code_block_grammar = parse_attribute_grammar(
 
 def expr_to_egglog(expr: TreeGrammar) -> str:
     match expr:
-        case Var(Token(prefix=name)):
+        case Var(ASTLeaf(prefix=name)):
             return f'(Var "{name}")'
-        case Num(Token(prefix=name)):
+        case Num(ASTLeaf(prefix=name)):
             return f"(Num {name})"
         case Application(children):
             egglog_children = " ".join(expr_to_egglog(child) for child in children)
@@ -74,7 +73,7 @@ def let_equivalence(
             var_tree = as_tree(var)
             binding_tree = as_tree(binding)
             match var_tree:
-                case Var(Token(prefix=name)):
+                case Var(ASTLeaf(prefix=name)):
                     if name in used_names:
                         return EmptySet()
                     if binding_tree:

@@ -3,10 +3,9 @@ from typing import Callable
 from functools import partial
 from collections import defaultdict
 from egglog.bindings import EGraph
-from core.grammar import Application, TreeGrammar, EmptySet, Union
+from core.grammar import Application, TreeGrammar, EmptySet, Union, ASTLeaf
 from dataclasses import dataclass
 from core.rewrite import rewrite
-from core.lexing.token import Token
 from functools import lru_cache
 
 START_RELATION = "__start__"  # dummy relation for the start symbol
@@ -64,13 +63,13 @@ def in_egraph(egraph: EGraph) -> Callable[[TreeGrammar], TreeGrammar]:
                 return EmptySet()
             case Union(children):
                 return Union.of(in_eclass(eclass, child) for child in children)
-            case Token(prefix=prefix, is_complete=True):
+            case ASTLeaf(prefix=prefix, is_complete=True):
                 matches_constant = any(
                     enode.op == prefix and not enode.children
                     for enode in eclasses[eclass]
                 )
                 return t if matches_constant else EmptySet()
-            case Token(prefix=prefix, token_regex=token_regex, is_complete=False):
+            case ASTLeaf(prefix=prefix, token_regex=token_regex, is_complete=False):
                 matches_constant = any(
                     not enode.children
                     and enode.op.startswith(prefix)

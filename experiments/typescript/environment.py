@@ -1,14 +1,14 @@
 from __future__ import annotations
 from dataclasses import dataclass, replace
+from typing import Optional
 import regex as re
 
-from core.grammar import TreeGrammar, EmptySet, Union
-from core.lexing.token import Token
+from core.grammar import TreeGrammar, EmptySet, Union, ASTLeaf
 from .types import *
 
 # Token template for ID tokens.
 # TODO: Get this directly from lark.
-IDLEAF = Token(
+IDLEAF = ASTLeaf(
     "ID",
     re.compile(
         "(?!(true|false|number|string|boolean|return|function|let|if|else|typescript)$)"
@@ -118,7 +118,7 @@ class Environment:
                     self.env[var][1])
         return (EmptySet(), EmptyType())
 
-    def get_terms_of_type(self, identifiers: Token, typ: Type,
+    def get_terms_of_type(self, identifiers: ASTLeaf, typ: Type,
                           is_mutable: Optional[bool] = None) -> TreeGrammar:
         if identifiers.token_type == "ID":
             if identifiers.is_complete:

@@ -1,7 +1,6 @@
 from .utils import *
 from core.rewrite import *
 from core.grammar import *
-from core.lexing.token import Token
 import regex
 
 
@@ -13,7 +12,7 @@ class Add(Binary): ...
 
 
 def int_token(i):
-    return Token("Int", regex.compile(r"\d+"), prefix=str(i), is_complete=True)
+    return ASTLeaf("Int", regex.compile(r"\d+"), prefix=str(i), is_complete=True)
 
 
 ONE = int_token(1)
@@ -40,7 +39,7 @@ def evens(t: TreeGrammar):
     match t:
         case EmptySet():
             return EmptySet()
-        case Token(prefix=prefix, is_complete=True):
+        case ASTLeaf(prefix=prefix, is_complete=True):
             return t if int(prefix) % 2 == 0 else EmptySet()
         case Add(left, right):
             return Union.of(
@@ -58,7 +57,7 @@ def odds(t: TreeGrammar):
     match t:
         case EmptySet():
             return EmptySet()
-        case Token(prefix=prefix, is_complete=True):
+        case ASTLeaf(prefix=prefix, is_complete=True):
             return t if int(prefix) % 2 == 1 else EmptySet()
         case Add(left, right):
             return Union.of(
@@ -87,7 +86,7 @@ def less_than(n: int, t: TreeGrammar):
     match t:
         case EmptySet():
             return EmptySet()
-        case Token(prefix=prefix, is_complete=True):
+        case ASTLeaf(prefix=prefix, is_complete=True):
             return t if int(prefix) < n else EmptySet()
         case Add(left, right):
             return Union.of(

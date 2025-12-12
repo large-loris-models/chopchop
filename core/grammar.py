@@ -1,7 +1,8 @@
 from dataclasses import dataclass
-from typing import Optional, Iterable
+from typing import Optional, Iterable, ClassVar
 from functools import lru_cache
 from abc import ABC, abstractmethod
+from .lexing.token import Token
 from .rewrite import Term, Var, fixpoint, rewriter
 from .utils import flatten
 
@@ -11,15 +12,17 @@ class TreeGrammar(Term):
     is_tree: bool = False
 
 
-# This is here to avoid circular imports. TODO: cleanup.
-from .lexing.token import Token  # noqa: E402
-
 Symbol = str
 
 
 @dataclass(frozen=True)
 class EmptySet(TreeGrammar):
     pass
+
+
+@dataclass(frozen=True)
+class ASTLeaf(TreeGrammar, Token):
+    is_tree: ClassVar[bool] = True  # type : ignore
 
 
 class Application(TreeGrammar, ABC):
@@ -81,7 +84,7 @@ def is_nonempty(t: TreeGrammar) -> bool:
     match t:
         case EmptySet():
             return False
-        case Token():
+        case ASTLeaf():
             return True
         case Application(children):
             return all(is_nonempty(c) for c in children)
@@ -115,7 +118,7 @@ def _as_tree(v: Var | TreeGrammar) -> Optional[TreeGrammar]:
                 tree_children,
                 is_tree=True,
             )
-        case Token():
+        case ASTLeaf():
             return t
         case EmptySet():
             return None
