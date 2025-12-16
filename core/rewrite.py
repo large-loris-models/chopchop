@@ -115,11 +115,23 @@ def rewrite(f):
         worklist: deque[Var] = deque([start_var])
         while worklist:
             current = worklist.popleft()
+
+            # Don't expand Vars we have processed already.
             if current in rewriter.equations:
                 continue
+
+            # Expand current's arguments until the top-level constructor resolves
+            # or we reach an unknown Var.
+            expanded_args = []
+            for arg in current.args:
+                while isinstance(arg, Var) and arg in rewriter.equations.keys():
+                    arg = rewriter.equations[arg]
+                expanded_args.append(arg)
+
+            # If we have any unknown Vars, process them first then come back.
             unprocessed = [
                 arg
-                for arg in current.args
+                for arg in expanded_args
                 if isinstance(arg, Var) and arg not in rewriter.equations
             ]
             if unprocessed:
@@ -127,12 +139,7 @@ def rewrite(f):
                 worklist.extendleft(unprocessed)
                 continue
 
-            expanded_args = []
-            for arg in current.args:
-                while isinstance(arg, Var):
-                    arg = rewriter.equations[arg]
-                expanded_args.append(arg)
-
+            # Compute and store the term for current.
             term = current.f(*expanded_args, **current.kwargs)
             rewriter.equations[current] = term
             rewriter.dependencies.add_node(current)
