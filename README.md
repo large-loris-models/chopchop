@@ -153,6 +153,6 @@ The repository is organized into the following directories:
 
 - **`demo`**  
   Contains code for running a small web demo, allowing users to check realizability of various prefixes.  
-  A publicly available version is hosted at [chop.streamlit.app](https://chop.streamlit.app).
+  A publicly available version is hosted at [chopchop.streamlit.app](https://chopchop.streamlit.app).
   Users can provide prefixes and check realizability with respect to a checker: by default, there is a basic example with an egraph-based checker.
   There is also a custom option to define your own checker.
